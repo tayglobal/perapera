@@ -2,15 +2,16 @@
 
 Discord Bot for learning a langauge
 
-## Infra
+## Env
 
 To create infra using CloudFormation first create a ``.env``
 
-And in it define the stack name, for example:
+Add a default region
 
 ```
-export CF_STACK_NAME=PeraPeraStack
+export AWS_DEFAULT_REGION=ap-northeast-1
 ```
+
 
 Then source it with
 
@@ -18,9 +19,34 @@ Then source it with
 source .env
 ```
 
-You might also want to set the region. For example
+## Infra
+
+``cd infra``
+
+1. Install CDK:
 
 ```
-export AWS_DEFAULT_REGION=ap-northeast-1
+sudo npm install -g aws-cdk
 ```
 
+```
+pip install --upgrade -r requirements.txt
+```
+
+2. Bootstrap (if you haven't already):
+
+```
+cdk bootstrap aws://YOUR_ACCOUNT_ID/YOUR_REGION
+```
+
+3. Deploy
+
+```
+cd cloudformation
+cdk deploy \
+    --parameters LambdaFunctionMapDev=perapera-dev \
+    --parameters LambdaFunctionMapProd=perapera-prod \
+    --parameters KmsIdKey=perapera-kms \
+    --parameters Stage=dev \
+    --parameters BaseTableName=perapera
+```

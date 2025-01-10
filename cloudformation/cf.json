@@ -1,129 +1,193 @@
 {
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "IAM Role and Policy for Lambda and API Gateway",
-    "Parameters": {
-      "PolicyName": {
-        "Type": "String",
-        "Description": "Name of the IAM policy",
-        "Default": "MyLambdaPolicy"
-      },
-      "RoleName": {
-        "Type": "String",
-        "Description": "Name of the IAM role",
-        "Default": "MyLambdaRole"
-      },
-      "LambdaFunctionMapDev": {
-        "Type": "String",
-        "Description": "Name of the Dev Lambda function"
-      },
-      "LambdaFunctionMapProd": {
-        "Type": "String",
-        "Description": "Name of the Prod Lambda function"
-      },
-      "KmsIdKey": {
-        "Type": "String",
-        "Description": "KMS Key ID"
-      }
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "IAM Role and Policy for Lambda and API Gateway",
+  "Parameters": {
+    "PolicyName": {
+      "Type": "String",
+      "Description": "Name of the IAM policy",
+      "Default": "MyLambdaPolicy"
     },
-    "Resources": {
-      "IAMPolicy": {
-        "Type": "AWS::IAM::Policy",
-        "Properties": {
-          "PolicyName": {
-            "Ref": "PolicyName"
-          },
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "dynamodb:BatchGet*",
-                  "dynamodb:DescribeStream",
-                  "dynamodb:DescribeTable",
-                  "dynamodb:Get*",
-                  "dynamodb:Query",
-                  "dynamodb:Scan",
-                  "dynamodb:BatchWrite*",
-                  "dynamodb:CreateTable",
-                  "dynamodb:Delete*",
-                  "dynamodb:Update*",
-                  "dynamodb:PutItem"
-                ],
-                "Resource": "arn:aws:dynamodb:*:*:table/twea-mula-*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "logs:CreateLogGroup",
-                  "logs:CreateLogStream",
-                  "logs:PutLogEvents"
-                ],
-                "Resource": "arn:aws:logs:*:*:*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": "lambda:InvokeFunction",
-                "Resource": [
-                  {
-                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapDev}"
-                  },
-                  {
-                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapProd}"
-                  }
-                ]
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "kms:Encrypt",
-                  "kms:Decrypt",
-                  "kms:ReEncrypt*",
-                  "kms:GenerateDataKey*",
-                  "kms:DescribeKey"
-                ],
-                "Resource": {
-                  "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsIdKey}"
-                }
-              }
-            ]
-          },
-          "Roles": [
+    "RoleName": {
+      "Type": "String",
+      "Description": "Name of the IAM role",
+      "Default": "MyLambdaRole"
+    },
+    "LambdaFunctionMapDev": {
+      "Type": "String",
+      "Description": "Name of the Dev Lambda function"
+    },
+    "LambdaFunctionMapProd": {
+      "Type": "String",
+      "Description": "Name of the Prod Lambda function"
+    },
+    "KmsIdKey": {
+      "Type": "String",
+      "Description": "KMS Key ID"
+    },
+    "Stage": {
+      "Type": "String",
+      "Description": "Deployment stage (e.g., dev, prod)",
+      "AllowedValues": ["dev", "prod"],
+      "Default": "dev"
+    },
+    "BaseTableName": {
+      "Type": "String",
+      "Description": "Base name for the DynamoDB table (e.g., my-table)",
+      "Default": "my-table"
+    }
+  },
+  "Conditions": {
+    "IsDev": {"Fn::Equals": [{"Ref": "Stage"}, "dev"]},
+    "IsProd": {"Fn::Equals": [{"Ref": "Stage"}, "prod"]}
+  },
+  "Resources": {
+    "IAMPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Ref": "PolicyName"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
             {
-              "Ref": "MyIAMRole"
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:BatchGet*",
+                "dynamodb:DescribeStream",
+                "dynamodb:DescribeTable",
+                "dynamodb:Get*",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:BatchWrite*",
+                "dynamodb:CreateTable",
+                "dynamodb:Delete*",
+                "dynamodb:Update*",
+                "dynamodb:PutItem"
+              ],
+              "Resource": {"Fn::Sub": "arn:aws:dynamodb:*:*:table/${BaseTableName}-*"}
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "arn:aws:logs:*:*:*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "lambda:InvokeFunction",
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapDev}"
+                },
+                {
+                  "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapProd}"
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsIdKey}"
+              }
             }
           ]
-        }
-      },
-      "MyIAMRole": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-          "RoleName": {
-            "Ref": "RoleName"
-          },
-          "AssumeRolePolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": "lambda.amazonaws.com"
-                },
-                "Action": "sts:AssumeRole"
+        },
+        "Roles": [
+          {
+            "Ref": "MyIAMRole"
+          }
+        ]
+      }
+    },
+    "MyIAMRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Ref": "RoleName"
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
               },
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": "apigateway.amazonaws.com"
-                },
-                "Action": "sts:AssumeRole"
-              }
-            ]
-          },
-          "ManagedPolicyArns": [
-            "arn:aws:iam::aws:policy/AWSLambdaExecute"
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
           ]
-        }
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AWSLambdaExecute"
+        ]
+      }
+    },
+    "DynamoDBTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Fn::If": [
+            "IsDev",
+            {"Fn::Sub": "${BaseTableName}-dev"},
+            {
+              "Fn::If": [
+                "IsProd",
+                {"Fn::Sub": "${BaseTableName}-prod"},
+                {"Fn::Sub": "${BaseTableName}-dev"}
+              ]
+            }
+          ]
+        },
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "path",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "folder",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "path",
+            "KeyType": "HASH"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "folder-index",
+            "KeySchema": [
+              {
+                "AttributeName": "folder",
+                "KeyType": "HASH"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ]
       }
     }
   }
+}
