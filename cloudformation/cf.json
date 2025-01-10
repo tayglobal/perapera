@@ -1,0 +1,129 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "IAM Role and Policy for Lambda and API Gateway",
+    "Parameters": {
+      "PolicyName": {
+        "Type": "String",
+        "Description": "Name of the IAM policy",
+        "Default": "MyLambdaPolicy"
+      },
+      "RoleName": {
+        "Type": "String",
+        "Description": "Name of the IAM role",
+        "Default": "MyLambdaRole"
+      },
+      "LambdaFunctionMapDev": {
+        "Type": "String",
+        "Description": "Name of the Dev Lambda function"
+      },
+      "LambdaFunctionMapProd": {
+        "Type": "String",
+        "Description": "Name of the Prod Lambda function"
+      },
+      "KmsIdKey": {
+        "Type": "String",
+        "Description": "KMS Key ID"
+      }
+    },
+    "Resources": {
+      "IAMPolicy": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": {
+            "Ref": "PolicyName"
+          },
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:BatchGet*",
+                  "dynamodb:DescribeStream",
+                  "dynamodb:DescribeTable",
+                  "dynamodb:Get*",
+                  "dynamodb:Query",
+                  "dynamodb:Scan",
+                  "dynamodb:BatchWrite*",
+                  "dynamodb:CreateTable",
+                  "dynamodb:Delete*",
+                  "dynamodb:Update*",
+                  "dynamodb:PutItem"
+                ],
+                "Resource": "arn:aws:dynamodb:*:*:table/twea-mula-*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:*:*:*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": "lambda:InvokeFunction",
+                "Resource": [
+                  {
+                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapDev}"
+                  },
+                  {
+                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionMapProd}"
+                  }
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "kms:Encrypt",
+                  "kms:Decrypt",
+                  "kms:ReEncrypt*",
+                  "kms:GenerateDataKey*",
+                  "kms:DescribeKey"
+                ],
+                "Resource": {
+                  "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsIdKey}"
+                }
+              }
+            ]
+          },
+          "Roles": [
+            {
+              "Ref": "MyIAMRole"
+            }
+          ]
+        }
+      },
+      "MyIAMRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": {
+            "Ref": "RoleName"
+          },
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              },
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "apigateway.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          },
+          "ManagedPolicyArns": [
+            "arn:aws:iam::aws:policy/AWSLambdaExecute"
+          ]
+        }
+      }
+    }
+  }
